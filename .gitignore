@@ -2,3 +2,10 @@ _site
 .DS_Store
 patterns
 .sass-cache
+public-bodies/*/
+public-bodies/*.json
+public-bodies/*.md
+public-bodies/*.md~
+public-bodies/*.~
+public-bodies/*.pyc
+public-bodies/*~
