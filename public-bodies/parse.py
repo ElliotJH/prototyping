@@ -7,7 +7,7 @@ import argparse
 import string
 import re
 import locale
-from jekyll import Markdown
+from jekyll import Markdown, Table
 
 
 locale.setlocale(locale.LC_ALL, 'en_GB')
@@ -25,9 +25,20 @@ def cleanRecord(record):
     '''Clean up the record'''
     return record
 
-def generateMD(record):
+def generatePublicBodyIndex(record):
     m = Markdown()
     m.yamlHeader(record["Name"])
+    headers = ['Name', 'Department']
+    m.tableStart()
+    for key in headers:
+        v = record[key]
+        m.tableRowStart()
+        m.tag('th', key, dict())
+        m.tag('td', v, dict())
+        m.tableRowEnd()
+    m.tableEnd()
+    
+    
     retValue = m.getvalue()
     m.close()
     return retValue
@@ -38,9 +49,24 @@ def generateDepartmentIndex(records, d):
         deptFileName = cleanName(department)
         with open(d + '/' + deptFileName + '/index.md', 'w') as outFile:
             m = Markdown()
-            m.yamlHeader(department)
+            m.yamlHeader(department, categories='Public Bodies')
+            m.tableStart()
+            m.tableHeader(['Public Body', "Chairperson's Salary", "Chief Executive's Salary"] )
             for body in [record for record in records if record["Department"] == department]:
-                m.linkLine(body["Name"], './' + cleanName(body["Name"]) +'.html')
+                m.tableRowStart()
+                
+                m.tableCellStart()
+                m.htmlLink(body["Name"], './' + cleanName(body["Name"]) +'.html')
+                m.tableCellEnd()
+                
+                m.tableCellStart()
+                m.write(body["Chair's Remuneration (PA unless otherwise stated)"])
+                m.tableCellEnd()
+                
+                m.tableCellStart()
+                m.write(body["Chief Executive / Secretart Remuneration"])
+                m.tableCellEnd()
+                m.tableRowEnd()
             outFile.write(m.getvalue())
             m.close()
 
@@ -61,7 +87,6 @@ def generateMainIndex(records, d):
         m.yamlHeader("Public Bodies", layout='default-visualised')
         m.tableStart(htmlClass="barchart-table")
         m.tableHeader(['Department', 'Bodies', 'Annual Total Expenditure'])
-
         for department in depts:
             bodies = [body for body in records if body['Department'] == department]
             totalExpenditure = sum(cleanFinanceNumber(body['Total Gross Expenditure']) for body in bodies)
@@ -69,6 +94,7 @@ def generateMainIndex(records, d):
             deptBodyCount = str(len(bodies))
             deptTotalExpenditure = "£" + format(totalExpenditure, ',.0f')
             deptURL = './' + deptFileName + '/index.html'
+
             m.tableRowStart({'data-bodies':deptBodyCount, 'data-expenditure':totalExpenditure, 'data-name':department, 'data-url':deptURL})
 
             m.tableCellStart()
@@ -103,7 +129,7 @@ def outputRecords(fn, d):
         with open(d + '/' + deptFileName + '/' + cleanName(record["Name"]) + ".json", 'w') as outFile:
             outFile.write(json.dumps(record))
         with open(d + '/' + deptFileName + '/' + cleanName(record["Name"]) + ".md", 'w') as outFile:
-            outFile.write(generateMD(record))
+            outFile.write(generatePublicBodyIndex(record))
     with open('index.json', 'w') as outFile:
         outFile.write(json.dumps(records))
     generateMainIndex(records, d)
